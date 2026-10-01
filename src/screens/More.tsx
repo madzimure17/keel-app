@@ -258,9 +258,8 @@ function Connection() {
     await saveConn({ url: u.startsWith('http') ? u : 'https://' + u, token: token.trim() });
     setMsg('Testing…');
     try {
-      const h = await get().api.health();
-      await get().api.liveSnapshot();
-      setMsg(`Connected ✓ (engine API v${h.version ?? '?'})`);
+      const info = await get().api.testConnection();
+      setMsg(`Connected ✓ (engine API v${info.version ?? '?'})`);
       toast('ok', 'Connected');
       refresh(); loadStatic();
       setTimeout(() => go({ tab: 'live' }), 600);

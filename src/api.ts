@@ -92,30 +92,40 @@ export type LiveChart = { symbol: string; digits: number; candles: [number, numb
   zones: { kind: string; bottom: number; top: number; source: string }[];
   lines: { label: string; price: number }[]; read: { bias?: string; phase?: string; detail?: string; likely_first?: string } };
 
-export class ApiError extends Error { constructor(public status: number, msg: string) { super(msg); } }
+export class ApiError extends Error {
+  constructor(public status: number, msg: string, public url = '') {
+    super(msg);
+    this.name = 'ApiError';
+  }
+}
 
 export class Api {
   constructor(public base: string, public token: string) { this.base = base.replace(/\/+$/, ''); }
 
   private async req<T>(path: string, init: RequestInit = {}, timeoutMs = 12000): Promise<T> {
     if (!this.base) throw new ApiError(0, 'Set the server address in Settings');
+    const requestUrl = this.base + path;
+    const method = init.method || 'GET';
     const ctl = new AbortController();
     const timer = setTimeout(() => ctl.abort(), timeoutMs);
     let r: Response;
     try {
-      r = await fetch(this.base + path, {
+      r = await fetch(requestUrl, {
         ...init, signal: ctl.signal, cache: 'no-store',
         headers: { Authorization: `Bearer ${this.token}`, 'Content-Type': 'application/json', ...(init.headers || {}) },
       });
     } catch (e: any) {
-      throw new ApiError(0, e?.name === 'AbortError' ? 'Server did not answer (is Tailscale on?)'
-        : 'Cannot reach the server (is Tailscale on?)');
+      const detail = e?.message ? `: ${e.message}` : '';
+      throw new ApiError(0, e?.name === 'AbortError'
+        ? `Timeout after ${Math.round(timeoutMs / 1000)}s calling ${method} ${requestUrl}`
+        : `Network or CORS error calling ${method} ${requestUrl}${detail}`, requestUrl);
     } finally { clearTimeout(timer); }
-    if (r.status === 401) throw new ApiError(401, 'Wrong API token');
     const txt = await r.text();
     let body: any = null;
     try { body = txt ? JSON.parse(txt) : null; } catch { /* not json */ }
-    if (!r.ok) throw new ApiError(r.status, body?.detail || txt || `HTTP ${r.status}`);
+    const reason = body?.detail || txt || r.statusText || 'request failed';
+    if (r.status === 401) throw new ApiError(401, `Authentication failed (HTTP 401): ${reason}`, requestUrl);
+    if (!r.ok) throw new ApiError(r.status, `HTTP ${r.status}: ${reason}`, requestUrl);
     return body as T;
   }
   get<T>(p: string) { return this.req<T>(p); }
@@ -123,6 +133,7 @@ export class Api {
 
   health() { return this.req<{ ok: boolean; version?: number }>('/api/health', {}, 6000); }
   info() { return this.get<Info>('/api/info'); }
+  testConnection() { return this.req<Info>('/api/info', {}, 30000); }
   state() { return this.get<State>('/api/state'); }
   symbols() { return this.get<Sym[]>('/api/symbols'); }
   candles(symbol: string, tf: string, limit = 300) {
