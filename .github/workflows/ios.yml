@@ -1,0 +1,44 @@
+name: Build unsigned Keel IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npx cap sync ios
+      - name: Archive without signing
+        run: >-
+          xcodebuild -workspace ios/App/App.xcworkspace -scheme App
+          -configuration Release -sdk iphoneos
+          -archivePath build/App.xcarchive archive
+          CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+      - name: Package IPA
+        run: |
+          mkdir -p Payload
+          cp -R build/App.xcarchive/Products/Applications/App.app Payload/
+          ditto -c -k --sequesterRsrc --keepParent Payload Keel.ipa
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Keel-ipa
+          path: Keel.ipa
+      - name: Attach IPA to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v3.0.${{ github.run_number }}
+          name: Keel v3.0.${{ github.run_number }}
+          files: Keel.ipa
+          generate_release_notes: true

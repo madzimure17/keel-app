@@ -1,0 +1,28 @@
+{
+  "name": "keel-markets-app",
+  "private": true,
+  "version": "3.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "build:web": "node build.mjs --web",
+    "icons": "npx @capacitor/assets generate --ios --iconBackgroundColor '#0F1B24' --iconBackgroundColorDark '#0F1B24' --splashBackgroundColor '#0F1B24' --splashBackgroundColorDark '#0F1B24'",
+    "ios": "npm run build && npx cap sync ios"
+  },
+  "dependencies": {
+    "@capacitor/app": "^7.0.0",
+    "@capacitor/barcode-scanner": "^2.2.6",
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/haptics": "^7.0.0",
+    "@capacitor/ios": "^7.0.0",
+    "@capacitor/preferences": "^7.0.0",
+    "@capacitor/status-bar": "^7.0.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^7.0.0",
+    "esbuild": "^0.25.0"
+  }
+}

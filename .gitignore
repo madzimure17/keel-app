@@ -1,0 +1,8 @@
+node_modules/
+dist/
+build/
+*.xcarchive
+*.ipa
+.DS_Store
+ios/App/Pods/
+ios/App/DerivedData/

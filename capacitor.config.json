@@ -1,0 +1,7 @@
+{
+  "appId": "com.panashe.keel",
+  "appName": "Keel",
+  "webDir": "dist",
+  "ios": { "contentInset": "never", "backgroundColor": "#0F1B24", "scheme": "Keel" },
+  "server": { "iosScheme": "capacitor" }
+}
